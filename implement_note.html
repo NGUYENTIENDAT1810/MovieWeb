@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movie Web - Implementation Note</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #e50914;
+      --success: #10b981;
+      --info: #38bdf8;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      color: var(--info);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      background-color: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .section-item {
+      margin-bottom: 1rem;
+    }
+    .section-label {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+    ul {
+      margin-left: 1.5rem;
+      color: var(--text);
+    }
+    li {
+      margin-bottom: 0.3rem;
+    }
+    code {
+      background: #090d16;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #f43f5e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎬 Movie Web — Implementation Log</h1>
+      <p class="subtitle">Nhật ký theo dõi tiến trình và các thay đổi kỹ thuật của dự án</p>
+    </header>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 1: Khởi tạo Project, Docker, PostgreSQL, Prisma & Health Check</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Thiết lập nền móng kiến trúc Monorepo cho toàn bộ hệ thống Movie Web: khởi tạo NestJS Backend, Next.js Frontend, cấu hình Docker Compose cho PostgreSQL, tích hợp Prisma ORM và xây dựng endpoint kiểm tra sức khỏe <code>GET /health</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện bước 1 theo đúng quy trình và đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>package.json</code> (cấu hình npm workspaces và script chạy/build tập trung từ thư mục gốc).</li>
+          <li><code>.gitignore</code>, <code>docker-compose.yml</code>, <code>.env.example</code>, <code>README.md</code></li>
+          <li><code>backend/package.json</code>, <code>backend/tsconfig.json</code> (cấu hình <code>typeRoots</code> chuẩn cho monorepo), <code>backend/tsconfig.build.json</code>, <code>backend/nest-cli.json</code>, <code>backend/.env.example</code>, <code>backend/.env</code></li>
+          <li><code>backend/prisma/schema.prisma</code>: Định nghĩa các model <code>User</code>, <code>Movie</code>, <code>Genre</code>, <code>MovieGenre</code>, <code>Episode</code>, <code>Favorite</code>, <code>WatchHistory</code>.</li>
+          <li><code>backend/src/prisma/prisma.service.ts</code> & <code>prisma.module.ts</code>: Module Prisma toàn cục và kiểm tra kết nối DB.</li>
+          <li><code>backend/src/health/health.controller.ts</code> & <code>health.module.ts</code>: Xử lý <code>GET /health</code>.</li>
+          <li><code>backend/src/app.module.ts</code> & <code>backend/src/main.ts</code>: Bootstrap NestJS với Swagger Docs tại <code>/api/docs</code>, Global Validation, CORS.</li>
+          <li><code>frontend/package.json</code>, <code>frontend/tsconfig.json</code> (cấu hình <code>typeRoots</code>), <code>frontend/next.config.js</code>, <code>frontend/tailwind.config.ts</code>, <code>frontend/postcss.config.js</code>, <code>frontend/app/globals.css</code>, <code>frontend/app/layout.tsx</code>, <code>frontend/app/page.tsx</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Cấu trúc hóa thư mục dự án; tách biệt các tầng ứng dụng; cấu hình Global ValidationPipe; cấu hình Swagger OpenAPI.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Toàn bộ kiến trúc nền tảng của Backend và Frontend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>GET /health</code>: Kiểm tra trạng thái hoạt động của Backend và kết nối database.</li>
+          <li><code>GET /api/docs</code>: Giao diện tài liệu Swagger / OpenAPI.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Chạy <code>npm install</code> trong <code>backend</code> và <code>frontend</code>.</li>
+          <li>Sinh Prisma client bằng <code>npx prisma generate</code>.</li>
+          <li>Build backend: <code>npm run build</code>.</li>
+          <li>Build frontend: <code>npm run build</code>.</li>
+          <li>Khởi chạy backend và gửi request tới <code>GET /health</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Quá trình cài đặt dependencies, generate Prisma client, build Backend và Frontend đều diễn ra thành công không có lỗi.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 2: Movie/Genre/Episode Schema, Migration & Seed</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Hoàn thiện thiết kế Database Schema, khởi tạo Migration SQL ban đầu và viết kịch bản Seed Data (Admin, User, Genres, Demo Movie/Episode) bằng Prisma Client và bcryptjs.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 2 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 5 & 19).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/package.json</code>: Cài đặt <code>bcryptjs</code>, <code>@types/bcryptjs</code> và khai báo lệnh <code>prisma.seed</code>.</li>
+          <li><code>backend/prisma/seed.ts</code>: Kịch bản seed tự động cho 17 thể loại phim chuẩn, tài khoản Admin (<code>admin@movieweb.com</code>), tài khoản User mẫu (<code>user@movieweb.com</code>), và phim demo bản quyền mở có tập phát video.</li>
+          <li><code>backend/prisma/migrations/20260907000000_init/migration.sql</code>: File SQL Migration khởi tạo đầy đủ các bảng quan hệ, index, khóa chính và foreign keys.</li>
+          <li><code>backend/prisma/migrations/migration_lock.toml</code>: Khóa provider PostgreSQL cho Prisma Migrate.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Mã hóa mật khẩu an toàn với bcrypt (10 salt rounds); sử dụng phương thức <code>upsert</code> trong seed script để tránh trùng lặp dữ liệu khi chạy nhiều lần.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng cơ sở dữ liệu (Database Layer), các model ORM và dữ liệu khởi tạo của hệ thống.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li>Chưa thêm API mới ở tầng HTTP (sẽ thêm ở Milestone 3).</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Tạo migration SQL thông qua <code>npx prisma migrate diff</code>.</li>
+          <li>Kiểm tra type-check và biên dịch TypeScript của <code>seed.ts</code> qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>File migration sinh ra chuẩn cú pháp PostgreSQL; <code>backend/prisma/seed.ts</code> biên dịch sạch 100% không có lỗi type.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 3: Movie REST API & Swagger OpenAPI Documentation</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng hệ thống REST API đầy đủ cho Phim (Movies), Thể loại (Genres), Tập phim (Episodes) và Tìm kiếm (Search) theo chuẩn RESTful, tích hợp cơ chế phân trang (Pagination), lọc (Filter), sắp xếp (Sort), xử lý ngoại lệ tập trung và tài liệu hóa Swagger.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 3 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 8 & 15).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/common/dto/pagination.dto.ts</code>: DTO phân trang chuẩn hóa (page, limit, skip, take) và hàm <code>calculatePagination</code>.</li>
+          <li><code>backend/src/common/filters/http-exception.filter.ts</code>: Exception Filter chuẩn hóa cấu trúc lỗi HTTP cho toàn bộ ứng dụng (Mục 16).</li>
+          <li><code>backend/src/genres/genres.controller.ts</code>, <code>genres.service.ts</code>, <code>genres.module.ts</code>: Quản lý danh mục thể loại và lấy phim theo thể loại.</li>
+          <li><code>backend/src/movies/dto/query-movie.dto.ts</code> & <code>dto/search-movie.dto.ts</code>: DTO hỗ trợ lọc theo thể loại, năm phát hành, từ khóa và sắp xếp.</li>
+          <li><code>backend/src/movies/movies.controller.ts</code>, <code>search.controller.ts</code>, <code>movies.service.ts</code>, <code>movies.module.ts</code>: Xử lý toàn bộ logic truy vấn phim, trending, popular, latest, chi tiết phim qua slug/id và tập phim.</li>
+          <li><code>backend/src/episodes/episodes.controller.ts</code>, <code>episodes.service.ts</code>, <code>episodes.module.ts</code>: Lấy chi tiết tập phim và metadata phát video.</li>
+          <li><code>backend/src/app.module.ts</code>: Đăng ký các module mới và Global Exception Filter.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Tách biệt rõ ràng Controller (mỏng) và Service (chứa toàn bộ business logic & truy vấn Prisma); áp dụng Full-Text case-insensitive search; kiểm soát phân trang tối đa 100 items/page để bảo vệ tài nguyên hệ thống.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng API của Backend phục vụ dữ liệu trực tiếp cho Client/Frontend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>GET /movies</code>: Danh sách phim có phân trang, lọc theo thể loại/năm, tìm kiếm và sắp xếp.</li>
+          <li><code>GET /movies/trending</code>: Phim thịnh hành.</li>
+          <li><code>GET /movies/popular</code>: Phim phổ biến nhiều đánh giá.</li>
+          <li><code>GET /movies/latest</code>: Phim mới ra mắt.</li>
+          <li><code>GET /movies/slug/:slug</code>: Chi tiết phim theo slug SEO.</li>
+          <li><code>GET /movies/:id</code>: Chi tiết phim theo UUID.</li>
+          <li><code>GET /movies/:id/episodes</code>: Danh sách tập phim.</li>
+          <li><code>GET /genres</code>: Danh sách thể loại phim.</li>
+          <li><code>GET /genres/:id/movies</code>: Danh sách phim theo thể loại (hỗ trợ ID hoặc slug).</li>
+          <li><code>GET /search?q=</code>: Tìm kiếm phim theo từ khóa.</li>
+          <li><code>GET /episodes/:id</code>: Chi tiết tập phim.</li>
+          <li><code>GET /api/docs</code>: Swagger UI tương tác trực tiếp với toàn bộ endpoint trên.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra type-check và biên dịch TypeScript toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Cả Backend NestJS và Frontend Next.js build thành công 100% không có lỗi.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 4: Third-party TMDB API Integration & Data Sync</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Tích hợp API The Movie Database (TMDB) thông qua module <code>external-movies/</code> và xây dựng hệ thống đồng bộ dữ liệu phim tự động (Popular, Trending, theo ID, Thể loại) vào PostgreSQL qua module <code>admin/</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 4 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 6, 7 & 14).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/common/utils/slugify.util.ts</code>: Hàm sinh slug SEO hỗ trợ tiếng Việt có dấu và ký tự đặc biệt.</li>
+          <li><code>backend/src/external-movies/interfaces/tmdb.interface.ts</code>: Định nghĩa kiểu dữ liệu cho response TMDB và cấu trúc <code>SyncResult</code>.</li>
+          <li><code>backend/src/external-movies/external-movies.service.ts</code> & <code>external-movies.module.ts</code>: Client gọi API TMDB (hỗ trợ popular, trending, search, movie detail, credits, genres, images) với cơ chế fallback ngôn ngữ và che giấu API key an toàn.</li>
+          <li><code>backend/src/admin/admin-sync.service.ts</code>, <code>admin-sync.controller.ts</code>, <code>admin.module.ts</code>: Xử lý logic chuẩn hóa metadata, upsert phim tránh trùng lặp qua <code>externalId + source</code>, map thể loại và khởi tạo tập phim ban đầu.</li>
+          <li><code>backend/src/app.module.ts</code>: Đăng ký <code>ExternalMoviesModule</code> và <code>AdminModule</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Cơ chế đồng bộ 2 chiều an toàn: Gọi API ngoài -> Chuẩn hóa dữ liệu -> Upsert PostgreSQL -> Tránh duplicate; không để Frontend gọi trực tiếp bên thứ ba; bảo mật tuyệt đối TMDB_API_KEY trong file .env.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng tích hợp dịch vụ bên thứ 3 và tầng quản trị đồng bộ dữ liệu Backend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>POST /admin/movies/sync/genres</code>: Đồng bộ toàn bộ danh mục thể loại phim từ TMDB.</li>
+          <li><code>POST /admin/movies/sync/popular</code>: Đồng bộ danh sách phim phổ biến theo trang.</li>
+          <li><code>POST /admin/movies/sync/trending</code>: Đồng bộ danh sách phim thịnh hành theo ngày/tuần.</li>
+          <li><code>POST /admin/movies/sync/:externalId</code>: Đồng bộ chi tiết một bộ phim cụ thể theo ID TMDB.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra type-check và biên dịch TypeScript toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Cả Backend NestJS và Frontend Next.js build thành công 100% không có lỗi.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 5: Authentication & JWT (Register, Login, Me & Role Guards)</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng hệ thống xác thực (Authentication) và phân quyền (Authorization) hoàn chỉnh với JWT, mã hóa mật khẩu an toàn qua bcryptjs, cấp phát token và kiểm soát quyền truy cập tài nguyên theo Role (USER / ADMIN).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 5 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 9 & 18).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/auth/dto/register.dto.ts</code> & <code>dto/login.dto.ts</code>: DTO xác thực email và độ dài mật khẩu.</li>
+          <li><code>backend/src/auth/strategies/jwt.strategy.ts</code>: Passport JWT Strategy giải mã token và gắn thông tin định danh user vào request.</li>
+          <li><code>backend/src/auth/guards/jwt-auth.guard.ts</code>: Guard bảo vệ các endpoint yêu cầu đăng nhập.</li>
+          <li><code>backend/src/auth/guards/roles.guard.ts</code> & <code>decorators/roles.decorator.ts</code>: Guard và Decorator kiểm tra quyền truy cập theo vai trò (ADMIN / USER).</li>
+          <li><code>backend/src/auth/decorators/current-user.decorator.ts</code>: Custom Decorator trích xuất thông tin user từ request.</li>
+          <li><code>backend/src/auth/auth.service.ts</code>, <code>auth.controller.ts</code>, <code>auth.module.ts</code>: Xử lý logic đăng ký, đăng nhập và lấy thông tin cá nhân.</li>
+          <li><code>backend/src/users/users.service.ts</code>, <code>users.module.ts</code>: Module quản lý truy vấn thông tin người dùng an toàn.</li>
+          <li><code>backend/src/admin/admin-sync.controller.ts</code>: Khóa bảo vệ các endpoint đồng bộ dữ liệu bằng <code>@UseGuards(JwtAuthGuard, RolesGuard)</code> và <code>@Roles(Role.ADMIN)</code>.</li>
+          <li><code>backend/src/app.module.ts</code>: Đăng ký <code>AuthModule</code> và <code>UsersModule</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Mật khẩu được băm bằng bcryptjs (10 rounds); không bao giờ trả về <code>passwordHash</code> trong response; token JWT có thời hạn 7 ngày; kiểm soát phân quyền chặt chẽ trước khi thực thi tác vụ quản trị.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng bảo mật, phân quyền và quản lý tài khoản của hệ thống.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>POST /auth/register</code>: Đăng ký tài khoản người dùng mới (Role: USER).</li>
+          <li><code>POST /auth/login</code>: Đăng nhập và nhận chuỗi JWT Access Token.</li>
+          <li><code>GET /auth/me</code>: Xem thông tin tài khoản hiện tại (Yêu cầu Bearer Token).</li>
+          <li><code>POST /admin/movies/sync/*</code>: Yêu cầu Bearer Token và Role ADMIN.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra type-check và biên dịch TypeScript toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Cả Backend NestJS và Frontend Next.js build thành công 100% không có lỗi.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 6: Favorites & Watch History Management</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng hệ thống quản lý danh sách Phim yêu thích (Favorites) và Theo dõi tiến độ xem / Lịch sử xem (Watch History / Continue Watching) cho từng tài khoản người dùng.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 6 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 10 & 11).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/favorites/favorites.service.ts</code>, <code>favorites.controller.ts</code>, <code>favorites.module.ts</code>: Xử lý thêm, xóa, kiểm tra trạng thái và lấy danh sách phim yêu thích phân trang.</li>
+          <li><code>backend/src/history/dto/save-history.dto.ts</code>: DTO lưu tiến độ xem (movieId, episodeId, progressSeconds, completed).</li>
+          <li><code>backend/src/history/history.service.ts</code>, <code>history.controller.ts</code>, <code>history.module.ts</code>: Lưu tiến độ xem, lấy danh sách xem tiếp (Continue Watching), tra cứu tiến độ phim cụ thể và xóa lịch sử.</li>
+          <li><code>backend/src/app.module.ts</code>: Đăng ký <code>FavoritesModule</code> và <code>HistoryModule</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Ràng buộc toàn bộ thao tác Favorites và Watch History yêu cầu xác thực JWT; tự động cập nhật thời gian xem mới nhất (<code>updatedAt</code>) để hiển thị danh sách Continue Watching chính xác.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng dữ liệu cá nhân hóa người dùng trên Backend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>POST /favorites/:movieId</code>: Thêm phim vào danh sách yêu thích.</li>
+          <li><code>DELETE /favorites/:movieId</code>: Xóa phim khỏi danh sách yêu thích.</li>
+          <li><code>GET /favorites</code>: Lấy danh sách phim yêu thích có phân trang.</li>
+          <li><code>GET /favorites/:movieId/status</code>: Kiểm tra phim đã được yêu thích chưa.</li>
+          <li><code>POST /history</code>: Lưu hoặc cập nhật số giây đã xem (tiến độ xem phim).</li>
+          <li><code>GET /history</code>: Lấy danh sách lịch sử xem phim (phục vụ Continue Watching).</li>
+          <li><code>GET /history/movie/:movieId</code>: Lấy mốc thời gian xem gần nhất của phim.</li>
+          <li><code>DELETE /history/:id</code> & <code>DELETE /history</code>: Xóa 1 bản ghi hoặc toàn bộ lịch sử.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra type-check và biên dịch TypeScript toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Cả Backend NestJS và Frontend Next.js build thành công 100% không có lỗi.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 7: Next.js Cinematic UI (Home, Movies, Detail, Search & Auth)</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng toàn bộ giao diện người dùng bằng Next.js 14 App Router, TypeScript và Tailwind CSS theo phong cách Dark Cinematic: Trang chủ, Khám phá phim có lọc và phân trang, Chi tiết phim, Tìm kiếm trực tiếp, Đăng nhập, Đăng ký và Quản lý Phim yêu thích.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 7 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 12 & 13).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>frontend/types/index.ts</code>: Định nghĩa các interface <code>Movie</code>, <code>Genre</code>, <code>Episode</code>, <code>User</code>, <code>PaginatedResponse</code>, <code>WatchHistoryItem</code>.</li>
+          <li><code>frontend/lib/api.ts</code>: Client API tập trung kết nối với toàn bộ REST API của Backend và tự động đính kèm JWT Bearer Token.</li>
+          <li><code>frontend/context/auth-context.tsx</code>: React Context quản lý phiên đăng nhập (login, register, logout, token persistence).</li>
+          <li><code>frontend/components/navbar.tsx</code> & <code>footer.tsx</code>: Thanh điều hướng responsive (Search bar, User avatar, Mobile menu) và footer bản quyền chuẩn mực.</li>
+          <li><code>frontend/components/hero-banner.tsx</code>: Banner phim nổi bật với hiệu ứng cinematic gradient, điểm đánh giá và nút xem phim.</li>
+          <li><code>frontend/components/movie-card.tsx</code> & <code>movie-row.tsx</code>: Thẻ phim và hàng danh sách phim hiển thị poster, điểm đánh giá, hover overlay và nút Play.</li>
+          <li><code>frontend/components/movie-skeleton.tsx</code>: Skeleton loading mượt mà cho trải nghiệm người dùng cao cấp.</li>
+          <li><code>frontend/app/page.tsx</code>: Trang chủ hoàn chỉnh tích hợp Trending, Popular, Latest, Thể loại và Tiếp tục xem.</li>
+          <li><code>frontend/app/movies/page.tsx</code>: Trang danh sách phim hỗ trợ lọc đa tiêu chí (thể loại, năm phát hành, sắp xếp) và phân trang.</li>
+          <li><code>frontend/app/movies/[slug]/page.tsx</code>: Trang chi tiết phim hiển thị thông tin đầy đủ, danh sách tập phim và nút thêm/xóa yêu thích.</li>
+          <li><code>frontend/app/search/page.tsx</code>: Trang tìm kiếm tức thời có trạng thái rỗng (Empty state).</li>
+          <li><code>frontend/app/login/page.tsx</code> & <code>register/page.tsx</code>: Form xác thực người dùng.</li>
+          <li><code>frontend/app/favorites/page.tsx</code>: Trang bộ sưu tập phim yêu thích của cá nhân.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Sử dụng Next.js App Router với Suspense boundary; kiến trúc Single Source of Truth cho API và Auth Context; tối ưu hóa hình ảnh và lazy loading; giao diện thích ứng hoàn hảo cho cả Mobile và Desktop.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Toàn bộ tầng giao diện người dùng (Frontend Web Application).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li>Toàn bộ các endpoint Movies, Genres, Search, Auth, Favorites và History từ Backend.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra type-check và biên dịch TypeScript toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 8: Watch Page & Custom Video Player</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng trang xem phim chuyên dụng (<code>/watch/[movieId]/[episodeId]</code>) tích hợp trình phát video tùy biến (Custom HTML5 Video Player) phong cách Cinematic hiện đại, tự động nhớ mốc thời gian đã xem (Auto-resume playback), định kỳ đồng bộ lịch sử xem (<code>POST /history</code>), chuyển tập trước/sau và cảnh báo nguồn stream bản quyền mở hợp pháp.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 8 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 13 & 14).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>frontend/components/video-player.tsx</code>: Trình phát video tùy biến với đầy đủ tính năng: Play/Pause, tua ±10s, thanh Scrubber, điều chỉnh âm lượng/mute, phóng to Fullscreen, tự động ẩn thanh điều khiển khi xem, tự động khôi phục vị trí xem trước đó (Auto Resume) và định kỳ lưu tiến độ xem về backend mỗi 8 giây.</li>
+          <li><code>frontend/app/watch/[movieId]/[episodeId]/page.tsx</code>: Trang xem phim hoàn chỉnh với nút quay lại phim chi tiết, trình phát video chính, thanh chuyển tập nhanh (Previous / Next Episode), metadata phim và bảng lưới chọn tập (Episode Selector Grid).</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Tự động tra cứu tiến độ xem trước đó của người dùng khi tải player; lưu mốc thời gian định kỳ ngầm không làm gián đoạn trải nghiệm người dùng; tự động đánh dấu hoàn thành khi xem trên 95% thời lượng; hiển thị thông báo tuân thủ bản quyền rõ ràng khi video chưa có nguồn phát hợp pháp.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Trải nghiệm phát video và lưu trữ lịch sử người dùng trên Frontend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>GET /movies/:id</code>: Lấy thông tin phim.</li>
+          <li><code>GET /movies/:id/episodes</code>: Lấy danh sách tập phim.</li>
+          <li><code>GET /history/movie/:movieId</code>: Lấy mốc thời gian đã xem trước đó để resume.</li>
+          <li><code>POST /history</code>: Định kỳ lưu mốc thời gian xem phim.</li>
+          <li><code>GET /favorites/:movieId/status</code>: Trạng thái yêu thích.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Biên dịch và kiểm tra type toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 9: Admin Dashboard & Management Portal</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Xây dựng hệ thống quản trị nội dung toàn diện (Admin Portal) bao gồm: Bảng điều khiển tổng quan (Dashboard), Quản lý và chỉnh sửa danh sách phim (Movie Management & Edit Metadata), Xóa phim cascade và Trung tâm kích hoạt đồng bộ dữ liệu TMDB (TMDB Sync Manager) kèm console log thời gian thực.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 9 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 14 & 18).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/admin/dto/update-movie.dto.ts</code>: DTO validate cập nhật metadata phim.</li>
+          <li><code>backend/src/admin/admin.service.ts</code> & <code>admin.controller.ts</code>: Các endpoint <code>GET /admin/stats</code> (thống kê tổng phim, tập, user, thể loại), <code>PATCH /admin/movies/:id</code> (sửa phim) và <code>DELETE /admin/movies/:id</code> (xóa phim cascade dữ liệu liên quan) được bảo vệ an toàn bằng <code>@Roles(Role.ADMIN)</code>.</li>
+          <li><code>frontend/lib/api.ts</code>: Đăng ký các phương thức gọi API Admin (getAdminStats, updateMovie, deleteMovie, syncPopular, syncTrending, syncByExternalId, syncGenres).</li>
+          <li><code>frontend/components/admin-nav.tsx</code>: Thanh điều hướng riêng biệt cho admin với các menu Tổng Quan, Quản Lý Phim, Đồng Bộ TMDB.</li>
+          <li><code>frontend/app/admin/layout.tsx</code>: Layout bảo vệ quyền hạn (Auth Guard) kiểm tra nghiêm ngặt <code>role === 'ADMIN'</code> trước khi cho phép truy cập.</li>
+          <li><code>frontend/app/admin/page.tsx</code>: Trang Dashboard với 4 thẻ chỉ số thống kê, bảng phim mới nạp và phím tắt nhanh.</li>
+          <li><code>frontend/app/admin/movies/page.tsx</code>: Trang quản lý danh sách phim với tìm kiếm, xem trên web, modal chỉnh sửa metadata và modal xác nhận xóa vĩnh viễn.</li>
+          <li><code>frontend/app/admin/sync/page.tsx</code>: Trang trung tâm điều khiển đồng bộ TMDB (Phổ biến, Thịnh hành, theo TMDB ID cụ thể, Thể loại) và bảng console log ghi nhận kết quả tức thời.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Bảo mật 2 lớp: Frontend guard chặn truy cập UI không có quyền ADMIN + Backend JwtAuthGuard & RolesGuard chặn trực tiếp request trái phép; Thao tác xóa phim sử dụng Prisma transaction xóa sạch quan hệ liên kết tránh lỗi foreign key.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng quản trị hệ thống và vận hành dữ liệu của ứng dụng.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>GET /admin/stats</code>: Lấy số liệu thống kê tổng quan.</li>
+          <li><code>PATCH /admin/movies/:id</code>: Chỉnh sửa thông tin phim.</li>
+          <li><code>DELETE /admin/movies/:id</code>: Xóa phim.</li>
+          <li><code>POST /admin/movies/sync/popular</code>: Đồng bộ phim phổ biến.</li>
+          <li><code>POST /admin/movies/sync/trending</code>: Đồng bộ phim thịnh hành.</li>
+          <li><code>POST /admin/movies/sync/:externalId</code>: Đồng bộ 1 phim theo ID.</li>
+          <li><code>POST /admin/movies/sync/genres</code>: Đồng bộ thể loại.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Biên dịch và kiểm tra type toàn bộ Monorepo qua <code>npm run build</code>.</li>
+        </ul>
+      </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Milestone 10: Testing, Code Cleanup, Docker & Final Documentation</span>
+        <span class="badge">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Thực hiện kiểm thử tổng thể (Regression & Build Test), dọn dẹp mã nguồn (xóa debug log, dead code, TODO/FIXME), hoàn thiện cấu hình Docker Compose cho PostgreSQL và viết tài liệu hướng dẫn vận hành chi tiết <code>README.md</code> cho người mới bắt đầu từ zero.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Milestone 10 theo đặc tả trong tài liệu <code>MOVIE_WEB_SPEC.md</code> (Mục 20, 21 & 22) để hoàn tất toàn bộ 10 Milestones của dự án.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>README.md</code>: Hướng dẫn cài đặt, cấu hình biến môi trường, Docker Compose, Prisma migrate/seed, khởi chạy Backend/Frontend, tài khoản mẫu và danh mục 10 milestones hoàn tất.</li>
+          <li><code>docker-compose.yml</code>: Cấu hình container PostgreSQL 16 Alpine với healthcheck tự động và persistent volume.</li>
+          <li><code>.env.example</code>, <code>backend/.env.example</code>, <code>frontend/.env.example</code>: Mẫu cấu hình an toàn, không chứa secret thật.</li>
+          <li><code>package.json</code>: Tối ưu hóa các script chạy monorepo (build, dev, prisma:generate, prisma:migrate, prisma:seed, prisma:studio).</li>
+          <li><code>implement_note.html</code> & <code>walkthrough.md</code>: Lưu trữ đầy đủ toàn bộ quá trình phát triển 10 Milestones.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Đảm bảo codebase đạt tiêu chuẩn Clean Architecture: không có dead code, không lộ secrets, kiểm soát type an toàn (TypeScript Strict Mode), tự động hóa các tác vụ quản trị cơ sở dữ liệu qua npm scripts.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Toàn bộ dự án Movie Web (Backend NestJS + Frontend Next.js + Database PostgreSQL).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li>Toàn bộ hệ sinh thái REST API và Swagger Docs tại <code>/api/docs</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra biên dịch và typecheck toàn bộ Monorepo qua <code>npm run build</code>.</li>
+          <li>Quét kiểm tra sạch TODO/FIXME và debug logs không cần thiết.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Build toàn bộ dự án thành công 100% với Exit Code 0, không có warning hay lỗi type nào tồn đọng.</p>
+      </div>
+    </div>
+
+    <div class="card" style="border-color: #10b981;">
+      <div class="card-title" style="color: #10b981;">
+        <span>🎯 Runtime QA Verification Suite (24/24 PASS)</span>
+        <span class="badge" style="background-color: rgba(16, 185, 129, 0.2); color: #10b981; border-color: #10b981;">100% PASS</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Mục tiêu kiểm thử thực tế (Runtime QA)</div>
+        <p>Chạy toàn bộ hệ thống (PostgreSQL UTF-8, NestJS Backend, Next.js Frontend), tự động hóa kiểm thử tất cả các luồng Authentication, REST API, Swagger Docs, Phân quyền Role, Yêu thích, Lịch sử xem phim, Admin CRUD và Frontend Routes.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Các lỗi phát hiện & đã tự động xử lý</div>
+        <ul>
+          <li><strong>Lỗi 1 (Môi trường thiếu Docker CLI)</strong>: Triển khai giải pháp khởi chạy máy chủ PostgreSQL cục bộ chuẩn hóa qua script <code>start-db.js</code>, hỗ trợ khởi chạy trực tiếp không phụ thuộc Docker.</li>
+          <li><strong>Lỗi 2 (Encoding cơ sở dữ liệu trên Windows)</strong>: <code>initdb</code> mặc định đặt mã hóa <code>WIN1258</code> gây lỗi khi insert ký tự tiếng Việt có dấu. Đã cấu hình cờ <code>-E UTF8 --locale=C</code> giải quyết dứt điểm 100% lỗi mã hóa tiếng Việt.</li>
+          <li><strong>Lỗi 3 (HTTP Status Code của Auth Login)</strong>: Gắn <code>@HttpCode(HttpStatus.OK)</code> vào <code>POST /auth/login</code> để trả về chuẩn mã HTTP 200 OK thay vì mặc định 201 của NestJS POST.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. Bảng kết quả kiểm thử 24/24 Test Cases</div>
+        <ul>
+          <li>✅ <code>GET /health</code>: Kết nối Backend và PostgreSQL (200 OK).</li>
+          <li>✅ <code>POST /auth/login (Admin)</code>: Cấp phát JWT Token & Role ADMIN (200 OK).</li>
+          <li>✅ <code>POST /auth/login (User)</code>: Cấp phát JWT Token & Role USER (200 OK).</li>
+          <li>✅ <code>GET /auth/me</code>: Xác thực Bearer Token & trả về Profile (200 OK).</li>
+          <li>✅ <code>POST /auth/register</code>: Đăng ký thành viên mới & băm mật khẩu bcrypt (201 Created).</li>
+          <li>✅ <code>GET /genres</code>: Lấy danh mục 17 thể loại phim chuẩn (200 OK).</li>
+          <li>✅ <code>GET /movies</code>: Phân trang, lọc và sắp xếp danh sách phim (200 OK).</li>
+          <li>✅ <code>GET /movies/slug/:slug</code>: Chi tiết phim, thể loại & danh sách tập (200 OK).</li>
+          <li>✅ <code>GET /episodes/:id</code>: Chi tiết tập phim & metadata video stream (200 OK).</li>
+          <li>✅ <code>POST & DELETE /favorites/:movieId</code>: Thêm, kiểm tra & xóa phim yêu thích (200/201 OK).</li>
+          <li>✅ <code>POST & GET /history</code>: Lưu trữ tiến độ xem & tự động khôi phục Auto-Resume (200/201 OK).</li>
+          <li>✅ <code>GET /admin/stats</code>: Thống kê số liệu hệ thống thời gian thực (200 OK).</li>
+          <li>✅ <code>Security Role Guard</code>: Chặn User thường truy cập Admin endpoint (403 Forbidden).</li>
+          <li>✅ <code>GET /api/docs</code>: Swagger UI OpenAPI tài liệu hóa toàn diện (200 OK).</li>
+          <li>✅ <code>10 Frontend Routes</code>: <code>/</code>, <code>/movies</code>, <code>/search</code>, <code>/login</code>, <code>/register</code>, <code>/favorites</code>, <code>/admin</code>, <code>/admin/movies</code>, <code>/admin/sync</code>, <code>/watch/:movieId/:episodeId</code> (200 OK).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

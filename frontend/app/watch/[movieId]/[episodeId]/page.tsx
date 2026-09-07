@@ -113,6 +113,7 @@ export default function WatchPage() {
       <div className="space-y-4">
         <VideoPlayer
           videoUrl={currentEpisode?.videoUrl}
+          subtitleUrl={currentEpisode?.subtitleUrl}
           thumbnailUrl={currentEpisode?.thumbnailUrl || movie.backdropUrl || movie.posterUrl}
           movieId={movie.id}
           episodeId={currentEpisode?.id || episodeId}

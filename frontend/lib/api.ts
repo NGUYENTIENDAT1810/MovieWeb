@@ -188,4 +188,28 @@ export const api = {
       `/admin/movies/sync/${externalId}`,
       { method: 'POST' },
     ),
+
+  // Admin Episodes & Video Sources
+  createEpisode: (data: Partial<Episode> & { movieId: string; title: string; episodeNumber: number }) =>
+    request<Episode>('/episodes/admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateEpisode: (id: string, data: Partial<Episode>) =>
+    request<Episode>(`/episodes/admin/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  deleteEpisode: (id: string) =>
+    request<{ success: boolean; message: string }>(`/episodes/admin/${id}`, {
+      method: 'DELETE',
+    }),
+
+  presetDemoEpisodes: (movieId: string) =>
+    request<{ success: boolean; message: string; episodes: Episode[] }>(
+      `/episodes/admin/preset-demo/${movieId}`,
+      { method: 'POST' },
+    ),
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
+import Hls from 'hls.js';
 import {
   Play,
   Pause,
@@ -13,20 +14,31 @@ import {
   AlertTriangle,
   Loader2,
   CheckCircle,
+  Settings,
+  Subtitles,
+  Sliders,
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/auth-context';
 
 interface VideoPlayerProps {
   videoUrl?: string;
+  subtitleUrl?: string;
   thumbnailUrl?: string;
   movieId: string;
   episodeId: string;
   onEnded?: () => void;
 }
 
+interface QualityLevel {
+  height: number;
+  bitrate: number;
+  index: number;
+}
+
 export function VideoPlayer({
   videoUrl,
+  subtitleUrl,
   thumbnailUrl,
   movieId,
   episodeId,
@@ -35,6 +47,7 @@ export function VideoPlayer({
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -46,9 +59,87 @@ export function VideoPlayer({
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasResumed, setHasResumed] = useState(false);
 
+  // HLS & Subtitles State
+  const [qualities, setQualities] = useState<QualityLevel[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = Auto
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
+
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Tự động lấy mốc thời gian đã xem trước đó (Resume playback)
+  // 1. Initialize HLS or Native HTML5 Video
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl) return;
+
+    const isHls = videoUrl.includes('.m3u8');
+
+    // Clean up previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (isHls) {
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
+
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+          const levels: QualityLevel[] = data.levels.map((lvl, index) => ({
+            height: lvl.height,
+            bitrate: lvl.bitrate,
+            index,
+          }));
+          setQualities(levels);
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+          if (currentQuality === -1) {
+            // Auto mode tracks level switched
+          }
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        hlsRef.current = hls;
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS for Safari/iOS
+        video.src = videoUrl;
+      }
+    } else {
+      // Standard Direct MP4 / WebM
+      video.src = videoUrl;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [videoUrl]);
+
+  // 2. Auto-Resume Playback from Watch History
   useEffect(() => {
     async function loadResumeProgress() {
       if (!user || !movieId) return;
@@ -67,7 +158,7 @@ export function VideoPlayer({
     loadResumeProgress();
   }, [movieId, user]);
 
-  // 2. Định kỳ lưu tiến độ xem phim (mỗi 8 giây khi đang phát)
+  // 3. Periodic Watch History Progress Saving (Every 8 seconds)
   useEffect(() => {
     if (!user || !isPlaying || !movieId) return;
 
@@ -91,7 +182,7 @@ export function VideoPlayer({
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (videoRef.current.paused) {
-      videoRef.current.play();
+      videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     } else {
       videoRef.current.pause();
@@ -147,6 +238,28 @@ export function VideoPlayer({
     }
   };
 
+  // Quality Level Switching
+  const handleQualityChange = (levelIndex: number) => {
+    setCurrentQuality(levelIndex);
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = levelIndex;
+    }
+    setShowQualityMenu(false);
+  };
+
+  // Subtitle Toggle
+  const toggleSubtitles = () => {
+    if (!videoRef.current) return;
+    const tracks = videoRef.current.textTracks;
+    if (tracks && tracks.length > 0) {
+      const newEnabled = !subtitlesEnabled;
+      setSubtitlesEnabled(newEnabled);
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].mode = newEnabled ? 'showing' : 'hidden';
+      }
+    }
+  };
+
   // Format time (mm:ss or hh:mm:ss)
   const formatTime = (timeInSecs: number) => {
     if (isNaN(timeInSecs)) return '00:00';
@@ -164,8 +277,11 @@ export function VideoPlayer({
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) setShowControls(false);
-    }, 3000);
+      if (isPlaying) {
+        setShowControls(false);
+        setShowQualityMenu(false);
+      }
+    }, 3500);
   };
 
   // Fallback: nếu không có videoUrl
@@ -185,7 +301,7 @@ export function VideoPlayer({
         <div className="relative z-10 space-y-1 max-w-md">
           <h3 className="text-lg font-bold text-white">Chưa có nguồn phát hợp lệ</h3>
           <p className="text-xs text-neutral-400 leading-relaxed">
-            Hệ thống chỉ phát các video có bản quyền mở hoặc nguồn stream hợp pháp. Tập phim này hiện đang được cập nhật luồng phát trực tuyến.
+            Hệ thống chỉ phát các video có bản quyền mở hoặc nguồn stream HLS/MP4 hợp pháp. Quản trị viên có thể nạp nguồn phát video trong bảng điều khiển Admin.
           </p>
         </div>
       </div>
@@ -202,7 +318,6 @@ export function VideoPlayer({
       {/* HTML5 Video Element */}
       <video
         ref={videoRef}
-        src={videoUrl}
         poster={thumbnailUrl}
         onClick={togglePlay}
         onTimeUpdate={() => videoRef.current && setCurrentTime(videoRef.current.currentTime)}
@@ -226,7 +341,18 @@ export function VideoPlayer({
           if (onEnded) onEnded();
         }}
         className="w-full h-full object-contain cursor-pointer"
-      />
+        playsInline
+      >
+        {subtitleUrl && (
+          <track
+            kind="subtitles"
+            src={subtitleUrl}
+            srcLang="vi"
+            label="Tiếng Việt"
+            default={subtitlesEnabled}
+          />
+        )}
+      </video>
 
       {/* Buffering Indicator */}
       {isBuffering && (
@@ -242,6 +368,11 @@ export function VideoPlayer({
           <span>Đã tiếp tục xem từ {formatTime(currentTime)}</span>
         </div>
       )}
+
+      {/* Stream Type Badge (HLS / MP4) */}
+      <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-neutral-300 pointer-events-none">
+        {videoUrl.includes('.m3u8') ? 'HLS STREAM' : 'MP4 DIRECT'}
+      </div>
 
       {/* Center Big Play Button when Paused */}
       {!isPlaying && !isBuffering && (
@@ -322,7 +453,71 @@ export function VideoPlayer({
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 relative">
+            {/* Subtitle Toggle */}
+            {subtitleUrl && (
+              <button
+                onClick={toggleSubtitles}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  subtitlesEnabled ? 'text-primary' : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Bật/Tắt phụ đề"
+              >
+                <Subtitles className="w-5 h-5" />
+              </button>
+            )}
+
+            {/* HLS Quality Level Switcher Menu */}
+            {qualities.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowQualityMenu(!showQualityMenu)}
+                  className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-[11px] font-mono ${
+                    showQualityMenu ? 'text-primary bg-white/10' : 'text-neutral-300 hover:text-white'
+                  }`}
+                  title="Chất lượng video"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {currentQuality === -1
+                      ? 'Auto'
+                      : `${qualities[currentQuality]?.height || 720}p`}
+                  </span>
+                </button>
+
+                {showQualityMenu && (
+                  <div className="absolute right-0 bottom-full mb-2 w-32 rounded-xl bg-[#141420] border border-[#242436] py-1 shadow-2xl text-xs z-30">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-wider border-b border-[#202030]">
+                      Độ phân giải
+                    </div>
+                    <button
+                      onClick={() => handleQualityChange(-1)}
+                      className={`w-full text-left px-3 py-1.5 hover:bg-[#202032] flex items-center justify-between transition-colors ${
+                        currentQuality === -1 ? 'text-primary font-bold' : 'text-neutral-300'
+                      }`}
+                    >
+                      <span>Tự động (Auto)</span>
+                      {currentQuality === -1 && <CheckCircle className="w-3 h-3 text-primary" />}
+                    </button>
+                    {qualities.map((lvl) => (
+                      <button
+                        key={lvl.index}
+                        onClick={() => handleQualityChange(lvl.index)}
+                        className={`w-full text-left px-3 py-1.5 hover:bg-[#202032] flex items-center justify-between transition-colors ${
+                          currentQuality === lvl.index ? 'text-primary font-bold' : 'text-neutral-300'
+                        }`}
+                      >
+                        <span>{lvl.height}p</span>
+                        {currentQuality === lvl.index && (
+                          <CheckCircle className="w-3 h-3 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}

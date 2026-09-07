@@ -15,9 +15,13 @@ import {
   AlertCircle,
   Loader2,
   Plus,
+  PlaySquare,
+  Sparkles,
+  Layers,
+  Save,
 } from 'lucide-react';
 import { api } from '../../../lib/api';
-import { Movie } from '../../../types';
+import { Movie, Episode } from '../../../types';
 
 export default function AdminMoviesPage() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -27,7 +31,7 @@ export default function AdminMoviesPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Edit Modal State
+  // Edit Movie Modal State
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
   const [editForm, setEditForm] = useState<{
     title: string;
@@ -52,6 +56,13 @@ export default function AdminMoviesPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Episode Manager Modal State
+  const [episodeManagingMovie, setEpisodeManagingMovie] = useState<Movie | null>(null);
+  const [movieEpisodes, setMovieEpisodes] = useState<Episode[]>([]);
+  const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
+  const [editingEpisode, setEditingEpisode] = useState<Partial<Episode> | null>(null);
+  const [isSavingEpisode, setIsSavingEpisode] = useState(false);
 
   const fetchMovies = async (currentPage = 1, searchQuery = search) => {
     try {
@@ -84,6 +95,7 @@ export default function AdminMoviesPage() {
     fetchMovies(1, search);
   };
 
+  // Movie Edit handlers
   const openEditModal = (movie: Movie) => {
     setEditingMovie(movie);
     setEditForm({
@@ -146,6 +158,95 @@ export default function AdminMoviesPage() {
     }
   };
 
+  // Episode Manager Handlers
+  const openEpisodeManager = async (movie: Movie) => {
+    setEpisodeManagingMovie(movie);
+    setEditingEpisode(null);
+    try {
+      setIsLoadingEpisodes(true);
+      const eps = await api.getEpisodes(movie.id);
+      setMovieEpisodes(eps);
+    } catch (err) {
+      console.error('Failed to load episodes:', err);
+    } finally {
+      setIsLoadingEpisodes(false);
+    }
+  };
+
+  const closeEpisodeManager = () => {
+    setEpisodeManagingMovie(null);
+    setEditingEpisode(null);
+  };
+
+  const handlePresetDemoStreams = async () => {
+    if (!episodeManagingMovie) return;
+    try {
+      setIsLoadingEpisodes(true);
+      const res = await api.presetDemoEpisodes(episodeManagingMovie.id);
+      const eps = await api.getEpisodes(episodeManagingMovie.id);
+      setMovieEpisodes(eps);
+      setNotification({ type: 'success', message: res.message });
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Nạp demo stream thất bại' });
+    } finally {
+      setIsLoadingEpisodes(false);
+    }
+  };
+
+  const handleSaveEpisode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!episodeManagingMovie || !editingEpisode) return;
+
+    try {
+      setIsSavingEpisode(true);
+      if (editingEpisode.id) {
+        // Update
+        await api.updateEpisode(editingEpisode.id, {
+          title: editingEpisode.title,
+          episodeNumber: editingEpisode.episodeNumber,
+          seasonNumber: editingEpisode.seasonNumber || 1,
+          videoUrl: editingEpisode.videoUrl || undefined,
+          subtitleUrl: editingEpisode.subtitleUrl || undefined,
+          duration: editingEpisode.duration ? Number(editingEpisode.duration) : undefined,
+          overview: editingEpisode.overview,
+        });
+        setNotification({ type: 'success', message: 'Đã cập nhật nguồn phát tập phim' });
+      } else {
+        // Create
+        await api.createEpisode({
+          movieId: episodeManagingMovie.id,
+          title: editingEpisode.title || `Tập ${(movieEpisodes.length || 0) + 1}`,
+          episodeNumber: editingEpisode.episodeNumber || (movieEpisodes.length || 0) + 1,
+          seasonNumber: editingEpisode.seasonNumber || 1,
+          videoUrl: editingEpisode.videoUrl || undefined,
+          subtitleUrl: editingEpisode.subtitleUrl || undefined,
+          duration: editingEpisode.duration ? Number(editingEpisode.duration) : undefined,
+          overview: editingEpisode.overview,
+        });
+        setNotification({ type: 'success', message: 'Đã tạo tập phim mới thành công' });
+      }
+
+      const refreshed = await api.getEpisodes(episodeManagingMovie.id);
+      setMovieEpisodes(refreshed);
+      setEditingEpisode(null);
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Lưu tập phim thất bại' });
+    } finally {
+      setIsSavingEpisode(false);
+    }
+  };
+
+  const handleDeleteEpisode = async (episodeId: string) => {
+    if (!episodeManagingMovie) return;
+    try {
+      await api.deleteEpisode(episodeId);
+      setMovieEpisodes((prev) => prev.filter((ep) => ep.id !== episodeId));
+      setNotification({ type: 'success', message: 'Đã xóa tập phim' });
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Xóa tập phim thất bại' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -155,7 +256,7 @@ export default function AdminMoviesPage() {
             Quản Lý Danh Sách Phim
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Tìm kiếm, chỉnh sửa metadata và quản lý phim trong cơ sở dữ liệu ({totalCount} phim)
+            Tìm kiếm, chỉnh sửa metadata và quản lý nguồn phát video HLS/MP4 ({totalCount} phim)
           </p>
         </div>
 
@@ -281,6 +382,14 @@ export default function AdminMoviesPage() {
                     </td>
                     <td className="py-3 px-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openEpisodeManager(movie)}
+                          className="p-2 rounded-lg bg-[#1a1a26] hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                          title="Quản lý tập & Nguồn phát video"
+                        >
+                          <PlaySquare className="w-3.5 h-3.5" />
+                          <span className="hidden xl:inline text-[11px] font-semibold">Nguồn Video</span>
+                        </button>
                         <Link
                           href={`/movies/${movie.slug}`}
                           target="_blank"
@@ -344,7 +453,249 @@ export default function AdminMoviesPage() {
         )}
       </div>
 
-      {/* Edit Movie Modal */}
+      {/* Episode & Video Source Manager Modal */}
+      {episodeManagingMovie && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl bg-[#12121c] border border-[#26263a] rounded-2xl p-6 space-y-6 shadow-2xl animate-fade-in my-8">
+            <div className="flex items-center justify-between border-b border-[#202030] pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <PlaySquare className="w-5 h-5 text-amber-400" />
+                  <span>Quản Lý Tập Phim & Nguồn Video</span>
+                </h3>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  Phim: <strong className="text-white">{episodeManagingMovie.title}</strong>
+                </p>
+              </div>
+              <button
+                onClick={closeEpisodeManager}
+                className="text-neutral-400 hover:text-white p-1.5 rounded-lg hover:bg-[#1a1a26]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Actions Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-[#181824] border border-[#28283c]">
+              <div className="text-xs text-neutral-300">
+                <span>Hiện có: <strong>{movieEpisodes.length}</strong> tập phim</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePresetDemoStreams}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Nạp Demo HLS/MP4 Hợp Pháp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingEpisode({
+                      episodeNumber: (movieEpisodes.length || 0) + 1,
+                      seasonNumber: 1,
+                      title: `Tập ${(movieEpisodes.length || 0) + 1}`,
+                      videoUrl: '',
+                      subtitleUrl: '',
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Thêm Tập Mới</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Episode Edit Form (If opened) */}
+            {editingEpisode && (
+              <form onSubmit={handleSaveEpisode} className="p-4 rounded-xl bg-[#161622] border border-primary/30 space-y-4 text-xs animate-fade-in">
+                <div className="flex items-center justify-between border-b border-[#242436] pb-2">
+                  <span className="font-bold text-white text-sm">
+                    {editingEpisode.id ? 'Chỉnh Sửa Tập Phim' : 'Thêm Tập Phim Mới'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingEpisode(null)}
+                    className="text-neutral-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-neutral-300 font-semibold">Tên Tập</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingEpisode.title || ''}
+                      onChange={(e) => setEditingEpisode({ ...editingEpisode, title: e.target.value })}
+                      placeholder="Ví dụ: Tập 1: Mở đầu"
+                      className="w-full bg-[#1c1c2a] border border-[#2c2c40] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-neutral-300 font-semibold">Số Tập (Episode #)</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      value={editingEpisode.episodeNumber || 1}
+                      onChange={(e) =>
+                        setEditingEpisode({ ...editingEpisode, episodeNumber: parseInt(e.target.value) || 1 })
+                      }
+                      className="w-full bg-[#1c1c2a] border border-[#2c2c40] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-neutral-300 font-semibold">Thời Lượng (Phút)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editingEpisode.duration || ''}
+                      onChange={(e) =>
+                        setEditingEpisode({
+                          ...editingEpisode,
+                          duration: e.target.value ? parseInt(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="Ví dụ: 45"
+                      className="w-full bg-[#1c1c2a] border border-[#2c2c40] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-neutral-300 font-semibold flex items-center justify-between">
+                    <span>HLS (.m3u8) hoặc MP4 Video Stream URL</span>
+                    <span className="text-[10px] text-neutral-500 font-normal">Hỗ trợ HLS Multi-bitrate & MP4 Fallback</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={editingEpisode.videoUrl || ''}
+                    onChange={(e) => setEditingEpisode({ ...editingEpisode, videoUrl: e.target.value })}
+                    placeholder="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8 hoặc .mp4..."
+                    className="w-full bg-[#1c1c2a] border border-[#2c2c40] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary font-mono text-[11px]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-neutral-300 font-semibold">WebVTT (.vtt) Subtitle URL (Tùy chọn)</label>
+                  <input
+                    type="url"
+                    value={editingEpisode.subtitleUrl || ''}
+                    onChange={(e) => setEditingEpisode({ ...editingEpisode, subtitleUrl: e.target.value })}
+                    placeholder="https://example.com/subtitles/vi.vtt"
+                    className="w-full bg-[#1c1c2a] border border-[#2c2c40] rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary font-mono text-[11px]"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingEpisode(null)}
+                    className="px-3 py-1.5 rounded-lg bg-[#202030] text-neutral-300"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEpisode}
+                    className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold flex items-center gap-1.5 shadow-md shadow-primary/20"
+                  >
+                    {isSavingEpisode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>Lưu Tập Phim</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Episodes List Table */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+                Danh Sách Tập Phim
+              </h4>
+
+              {isLoadingEpisodes ? (
+                <div className="py-8 text-center text-xs text-neutral-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
+                  <span>Đang tải danh sách tập...</span>
+                </div>
+              ) : movieEpisodes.length > 0 ? (
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {movieEpisodes.map((ep) => (
+                    <div
+                      key={ep.id}
+                      className="p-3 rounded-xl bg-[#161622] border border-[#242436] flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-primary/20 text-primary font-bold text-[10px]">
+                            Tập {ep.episodeNumber}
+                          </span>
+                          <span className="font-bold text-white truncate">{ep.title}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-neutral-400 font-mono truncate">
+                          {ep.videoUrl ? (
+                            <span className="text-emerald-400 truncate max-w-md">
+                              ▶ {ep.videoUrl}
+                            </span>
+                          ) : (
+                            <span className="text-amber-400">⚠ Chưa có video URL</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Link
+                          href={`/watch/${episodeManagingMovie.id}/${ep.id}`}
+                          target="_blank"
+                          className="p-1.5 rounded-lg bg-[#202030] hover:bg-[#2a2a40] text-neutral-300 hover:text-white"
+                          title="Xem thử tập này"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          onClick={() => setEditingEpisode(ep)}
+                          className="p-1.5 rounded-lg bg-[#202030] hover:bg-cyan-500/20 text-cyan-400"
+                          title="Sửa nguồn phát"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEpisode(ep.id)}
+                          className="p-1.5 rounded-lg bg-[#202030] hover:bg-rose-500/20 text-rose-400"
+                          title="Xóa tập này"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-neutral-500 border border-dashed border-[#26263a] rounded-xl">
+                  Chưa có tập phim nào. Bấm "Nạp Demo HLS/MP4 Hợp Pháp" hoặc "Thêm Tập Mới" để tạo luồng phát.
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-[#202030] flex justify-end">
+              <button
+                type="button"
+                onClick={closeEpisodeManager}
+                className="px-4 py-2 rounded-xl bg-[#202030] hover:bg-[#2a2a40] text-white text-xs font-semibold"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Movie Metadata Modal */}
       {editingMovie && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="w-full max-w-xl bg-[#12121c] border border-[#26263a] rounded-2xl p-6 space-y-6 shadow-2xl animate-fade-in my-8">

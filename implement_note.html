@@ -754,6 +754,70 @@
         </ul>
       </div>
     </div>
+
+    <div class="card" style="border-color: #38bdf8;">
+      <div class="card-title" style="color: #38bdf8;">
+        <span>🎬 Phase 2: Video Architecture (HLS .m3u8, MP4 Fallback, WebVTT & Admin Video Manager)</span>
+        <span class="badge" style="background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; border-color: #38bdf8;">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Thiết kế lại toàn diện kiến trúc phát video: Tách biệt hoàn toàn giữa Metadata Source (TMDB) và Video Source; Tích hợp engine <code>hls.js</code> giải mã luồng adaptive bitrate HLS (<code>.m3u8</code>) và Native HLS (Safari/iOS); Hỗ trợ phụ đề WebVTT; Menu chuyển đổi chất lượng (Quality: Auto, 1080p, 720p, 480p, 360p); Xây dựng hệ thống quản lý tập phim và nguồn phát cho Quản trị viên (CRUD tập phim, nạp preset demo stream bản quyền mở từ Blender Foundation).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện Phase 2: Video Architecture theo yêu cầu nâng cấp hệ thống streaming chuyên nghiệp, mở rộng khả năng hỗ trợ HLS, MP4 fallback, WebVTT và quản trị tập phim mà không phụ thuộc vào TMDB.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>backend/src/episodes/dto/create-episode.dto.ts</code> & <code>dto/update-episode.dto.ts</code>: DTO validate quản lý tập phim và luồng video stream.</li>
+          <li><code>backend/src/episodes/episodes.service.ts</code> & <code>episodes.controller.ts</code>: Các endpoint <code>POST /episodes/admin</code>, <code>PATCH /episodes/admin/:id</code>, <code>DELETE /episodes/admin/:id</code>, <code>POST /episodes/admin/preset-demo/:movieId</code> được bảo vệ bởi Role ADMIN.</li>
+          <li><code>frontend/package.json</code>: Cài đặt thư viện chuẩn công nghiệp <code>hls.js</code>.</li>
+          <li><code>frontend/components/video-player.tsx</code>: Tích hợp Hls.js engine, hỗ trợ multi-bitrate level switching, WebVTT Subtitles, MP4 fallback, bảo toàn 100% cơ chế Auto-Resume và Watch History.</li>
+          <li><code>frontend/lib/api.ts</code>: Đăng ký các client API quản lý tập phim.</li>
+          <li><code>frontend/app/admin/movies/page.tsx</code>: Thêm Modal <strong>Quản Lý Tập Phim & Nguồn Video</strong> hỗ trợ thêm, sửa, xóa tập và nút nạp tức thì demo stream HLS/MP4 hợp pháp.</li>
+          <li><code>frontend/app/watch/[movieId]/[episodeId]/page.tsx</code>: Truyền `subtitleUrl` cho trình phát video.</li>
+          <li><code>scripts/qa-runner.js</code>: Mở rộng bộ kiểm thử tự động đạt 28/28 tests PASS.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Tự động nhận diện định dạng stream: file <code>.m3u8</code> kích hoạt Hls.js hoặc native HLS, file <code>.mp4</code>/<code>.webm</code> sử dụng native HTML5; bảo toàn hoàn toàn session đăng nhập, auto-resume và history ngầm mỗi 8 giây.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Trình phát video trên Frontend và hệ thống quản trị tập phim của Backend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <ul>
+          <li><code>POST /episodes/admin</code>: Tạo tập phim mới.</li>
+          <li><code>PATCH /episodes/admin/:id</code>: Cập nhật nguồn phát video/phụ đề.</li>
+          <li><code>DELETE /episodes/admin/:id</code>: Xóa tập phim.</li>
+          <li><code>POST /episodes/admin/preset-demo/:movieId</code>: Nạp luồng demo HLS/MP4 hợp pháp.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Biên dịch và kiểm tra type toàn bộ Monorepo qua <code>npm run build</code>.</li>
+          <li>Chạy QA Runner kiểm thử tự động 28 test cases qua <code>node scripts/qa-runner.js</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <p>Toàn bộ 28/28 Test Cases PASS 100% (24 regression tests ban đầu + 4 test cases mới của Phase 2).</p>
+      </div>
+    </div>
   </div>
 </body>
 </html>

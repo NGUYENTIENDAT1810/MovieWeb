@@ -51,12 +51,13 @@ function assertTest(name, condition, details = '') {
 }
 
 async function runQA() {
-  console.log('\n🚀 BẮT ĐẦU RUNTIME QA SUITE CHO TOÀN BỘ HỆ THỐNG MOVIE WEB\n');
+  console.log('\n🚀 BẮT ĐẦU RUNTIME QA SUITE CHO TOÀN BỘ HỆ THỐNG MOVIE WEB (PHASE 2)\n');
 
   let adminToken = '';
   let userToken = '';
   let demoMovieId = '';
   let demoEpisodeId = '';
+  let createdEpisodeId = '';
 
   // 1. Health check
   try {
@@ -225,7 +226,76 @@ async function runQA() {
     assertTest('Security: Chặn User thường truy cập Admin', false, err.message);
   }
 
-  // 14. Frontend Routes Accessibility
+  // --- Phase 2: Video Architecture & Episode Management Tests ---
+
+  // 14. Admin Preset Legal Demo HLS Streams
+  if (demoMovieId) {
+    try {
+      const res = await request(`${API_BASE}/episodes/admin/preset-demo/${demoMovieId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assertTest('Phase 2: Admin nạp nguồn HLS .m3u8 demo hợp pháp', res.status === 200 && res.body?.success === true && res.body?.episodes?.length === 2, `episodes=${res.body?.episodes?.length}`);
+    } catch (err) {
+      assertTest('Phase 2: Admin nạp nguồn HLS .m3u8 demo hợp pháp', false, err.message);
+    }
+  }
+
+  // 15. Admin Create Episode with HLS URL & WebVTT Subtitle
+  if (demoMovieId) {
+    try {
+      const res = await request(`${API_BASE}/episodes/admin`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${adminToken}` },
+        body: {
+          movieId: demoMovieId,
+          episodeNumber: 99,
+          seasonNumber: 1,
+          title: 'Tập 99: Test HLS Stream & Subtitle',
+          overview: 'Tập phim kiểm thử phụ đề và luồng HLS đa luồng.',
+          videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+          subtitleUrl: 'https://raw.githubusercontent.com/brenopolanski/html5-video-webvtt-example/master/subtitles/subtitles-en.vtt',
+          duration: 30,
+        },
+      });
+      createdEpisodeId = res.body?.id;
+      assertTest('Phase 2: Admin tạo tập phim với HLS .m3u8 & WebVTT Subtitle', res.status === 201 && !!createdEpisodeId, `episodeId=${createdEpisodeId}`);
+    } catch (err) {
+      assertTest('Phase 2: Admin tạo tập phim với HLS .m3u8 & WebVTT Subtitle', false, err.message);
+    }
+  }
+
+  // 16. Admin Update Episode Video Source
+  if (createdEpisodeId) {
+    try {
+      const res = await request(`${API_BASE}/episodes/admin/${createdEpisodeId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${adminToken}` },
+        body: {
+          title: 'Tập 99: Đã cập nhật luồng phát',
+          videoUrl: 'https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
+        },
+      });
+      assertTest('Phase 2: Admin cập nhật nguồn video tập phim', res.status === 200 && res.body?.videoUrl?.includes('bitmovin'), `videoUrl=${res.body?.videoUrl}`);
+    } catch (err) {
+      assertTest('Phase 2: Admin cập nhật nguồn video tập phim', false, err.message);
+    }
+  }
+
+  // 17. Admin Delete Episode
+  if (createdEpisodeId) {
+    try {
+      const res = await request(`${API_BASE}/episodes/admin/${createdEpisodeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      assertTest('Phase 2: Admin xóa tập phim', res.status === 200 && res.body?.success === true, `message=${res.body?.message}`);
+    } catch (err) {
+      assertTest('Phase 2: Admin xóa tập phim', false, err.message);
+    }
+  }
+
+  // 18. Frontend Routes Accessibility
   const frontendRoutes = [
     '/',
     '/movies',
@@ -247,7 +317,7 @@ async function runQA() {
     }
   }
 
-  // 15. Frontend Watch Page
+  // 19. Frontend Watch Page with HLS Player
   if (demoMovieId && demoEpisodeId) {
     try {
       const res = await request(`${FRONTEND_BASE}/watch/${demoMovieId}/${demoEpisodeId}`);

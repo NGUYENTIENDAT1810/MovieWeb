@@ -50,8 +50,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Swagger Documentation Setup (Configurable in Production)
-  if (enableSwagger === 'true' || nodeEnv !== 'production') {
+  const swaggerEnv = configService.get<string>('SWAGGER_ENABLED', configService.get<string>('ENABLE_SWAGGER', ''));
+  const isSwaggerEnabled = swaggerEnv ? swaggerEnv === 'true' : nodeEnv !== 'production';
+
+  // Swagger Documentation Setup (Configurable, disabled by default in production)
+  if (isSwaggerEnabled) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Movie Web API')
       .setDescription('REST API for Movie Web - Movies, Genres, Episodes, Favorites, History, Admin')
@@ -73,6 +76,7 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
     logger.log(`Swagger API Docs available at: http://localhost:${port}/api/docs`);
   }
+
 
   await app.listen(port);
   logger.log(`Backend Application (${nodeEnv}) is running on: http://localhost:${port}`);

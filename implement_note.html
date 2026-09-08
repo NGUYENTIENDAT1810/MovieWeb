@@ -944,6 +944,70 @@
         </ul>
       </div>
     </div>
+
+    <div class="card" style="border-color: #6366f1;">
+      <div class="card-title" style="color: #6366f1;">
+        <span>🚀 Phase 3 — Step 2: Production Deployment Preparation & Dockerization</span>
+        <span class="badge" style="background-color: rgba(99, 102, 241, 0.2); color: #6366f1; border-color: #6366f1;">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Chuẩn bị toàn bộ quy trình và tài liệu triển khai môi trường Production thực tế: Xây dựng Dockerfile Multi-stage cho Backend & Frontend, thiết kế chiến lược Database Migration (<code>npx prisma migrate deploy</code>), cấu hình CORS Production, tài liệu hóa kịch bản Backup/Restore PostgreSQL, quy trình Rollback và bảng kiểm tra Production Readiness Checklist trong <code>docs/PRODUCTION_DEPLOYMENT.md</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện bước chuẩn bị đóng gói và chuẩn hóa quy trình deploy chuyên nghiệp, không làm thay đổi DNS hoặc triển khai trực tiếp khi chưa được phê duyệt.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>docs/PRODUCTION_DEPLOYMENT.md</code>: Hướng dẫn triển khai Production toàn diện (Kiến trúc Monolith, Docker, Migration, Backup, Rollback, Security trade-offs).</li>
+          <li><code>backend/Dockerfile</code>: Multi-stage Dockerfile cho NestJS Backend (builder & unprivileged runner).</li>
+          <li><code>backend/.dockerignore</code>: Loại trừ node_modules, dist, .pgdata, .env.</li>
+          <li><code>frontend/Dockerfile</code>: Multi-stage Dockerfile cho Next.js 14 App Router.</li>
+          <li><code>frontend/.dockerignore</code>: Loại trừ node_modules, .next, .env.local.</li>
+          <li><code>backend/prisma/migrations/20260908000000_add_fk_indexes/migration.sql</code>: Migration SQL an toàn cho production.</li>
+          <li><code>backend/src/main.ts</code>: Tích hợp biến <code>SWAGGER_ENABLED</code> (tắt mặc định trong production).</li>
+          <li><code>.env.example</code> & <code>backend/.env.example</code>: Bổ sung biến <code>SWAGGER_ENABLED</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Chuẩn hóa quy trình migration database qua <code>npx prisma migrate deploy</code> (thay vì <code>db push</code>); tách biệt môi trường development và production.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Toàn bộ tài liệu triển khai, file đóng gói container và quy trình khởi chạy hệ thống trên cloud server.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <p><code>GET /health</code> (Liveness/Readiness probe cho Load Balancer).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra lệnh migration: <code>npx prisma migrate deploy</code> thành công trên PostgreSQL.</li>
+          <li>Biên dịch toàn bộ Monorepo: <code>npm run build</code> (Backend + Frontend).</li>
+          <li>Chạy bộ kiểm thử hồi quy 28/28 test cases: <code>node scripts/qa-runner.js</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <ul>
+          <li>✅ <strong>Prisma Migrate Deploy:</strong> Hoàn tất 100% với 2 bản migrations sạch.</li>
+          <li>✅ <strong>Monorepo Production Build:</strong> NestJS và Next.js 14 biên dịch thành công (0 lỗi).</li>
+          <li>✅ <strong>Regression QA Suite:</strong> 28/28 tests PASS 100%.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </body>
 </html>

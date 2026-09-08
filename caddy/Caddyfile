@@ -1,0 +1,53 @@
+# ==============================================================================
+# CADDY REVERSE PROXY CONFIGURATION (AUTOMATIC HTTPS)
+# ==============================================================================
+
+{
+    # Global options
+    email {$ACME_EMAIL:admin@example.com}
+}
+
+# ------------------------------------------------------------------------------
+# 1. API Subdomain / Backend Service
+# ------------------------------------------------------------------------------
+{$API_DOMAIN:api.example.com} {
+    encode gzip zstd
+
+    # Proxy all API requests to backend container
+    reverse_proxy backend:4000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        -Server
+    }
+}
+
+# ------------------------------------------------------------------------------
+# 2. Main Frontend Application
+# ------------------------------------------------------------------------------
+{$DOMAIN:example.com} {
+    encode gzip zstd
+
+    # Proxy web requests to frontend container
+    reverse_proxy frontend:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}

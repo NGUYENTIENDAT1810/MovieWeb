@@ -1,0 +1,138 @@
+# ==============================================================================
+# MOVIE WEB — PRODUCTION DOCKER COMPOSE (SINGLE VPS ARCHITECTURE)
+# ==============================================================================
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Reverse Proxy & Auto-SSL (Caddy)
+  # ----------------------------------------------------------------------------
+  reverse-proxy:
+    image: caddy:2-alpine
+    container_name: movieweb_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 Support
+    environment:
+      DOMAIN: ${DOMAIN:-example.com}
+      API_DOMAIN: ${API_DOMAIN:-api.example.com}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - movieweb_network
+    depends_on:
+      - frontend
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 2. Frontend Web Application (Next.js 14)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.example.com}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://example.com}
+    container_name: movieweb_frontend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    expose:
+      - "3000"
+    networks:
+      - movieweb_network
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  # ----------------------------------------------------------------------------
+  # 3. Backend REST API Service (NestJS 10)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: movieweb_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-movieweb}?schema=public&sslmode=prefer
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://example.com,https://www.example.com}
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TMDB_BASE_URL: ${TMDB_BASE_URL:-https://api.themoviedb.org/3}
+      TMDB_IMAGE_BASE_URL: ${TMDB_IMAGE_BASE_URL:-https://image.tmdb.org/t/p}
+      THROTTLE_TTL: ${THROTTLE_TTL:-60000}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-120}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+    expose:
+      - "4000"
+    networks:
+      - movieweb_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  # ----------------------------------------------------------------------------
+  # 4. PostgreSQL Database (Internal Only — No Public Ports)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: movieweb_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-movieweb}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - movieweb_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-movieweb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+# ------------------------------------------------------------------------------
+# Persistent Volumes & Private Network
+# ------------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+networks:
+  movieweb_network:
+    driver: bridge

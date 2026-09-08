@@ -1008,6 +1008,67 @@
         </ul>
       </div>
     </div>
+
+    <div class="card" style="border-color: #8b5cf6;">
+      <div class="card-title" style="color: #8b5cf6;">
+        <span>🐧 Single VPS & Docker Compose Production Architecture (Option B)</span>
+        <span class="badge" style="background-color: rgba(139, 92, 246, 0.2); color: #8b5cf6; border-color: #8b5cf6;">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Thiết kế và cấu hình toàn diện kiến trúc triển khai Single Linux VPS sử dụng Docker Compose: <code>docker-compose.prod.yml</code>, Caddy Reverse Proxy (tự động cấp và gia hạn chứng chỉ HTTPS Let's Encrypt), cô lập PostgreSQL (không expose public port 5432), script triển khai tự động <code>scripts/deploy.sh</code>, script tự động backup <code>scripts/backup-db.sh</code>, và tài liệu hướng dẫn chi tiết <code>docs/VPS_DEPLOYMENT.md</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện chuẩn bị phương án triển khai Single VPS + Docker Compose theo yêu cầu lựa chọn kiến trúc Option B, sẵn sàng chạy ngay khi có máy chủ mà không làm ảnh hưởng môi trường development.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>docker-compose.prod.yml</code>: Cấu hình 4 services (caddy, frontend, backend, postgres) trên private network với persistent volumes và memory limits.</li>
+          <li><code>caddy/Caddyfile</code>: Cấu hình reverse proxy và tự động HTTPS cho main domain và API subdomain.</li>
+          <li><code>scripts/deploy.sh</code>: Script tự động pull git, build image, start container, run migration và check health.</li>
+          <li><code>scripts/backup-db.sh</code>: Script tự động pg_dump gzip và xoay vòng bản sao lưu 14 ngày.</li>
+          <li><code>docs/VPS_DEPLOYMENT.md</code>: Hướng dẫn thiết lập VPS từ A-Z (UFW Firewall, Docker, DNS, Cron backup, Restore, Troubleshooting).</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Tách biệt hoàn toàn file cấu hình production (<code>docker-compose.prod.yml</code>) và development (<code>docker-compose.yml</code>), đảm bảo PostgreSQL production được bảo vệ 100% trong Docker network nội bộ.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Hạ tầng triển khai Production trên Linux VPS.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <p><code>GET /health</code> và các API endpoints thông qua reverse proxy Caddy.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra cú pháp cấu hình: <code>docker-compose.prod.yml</code>, <code>caddy/Caddyfile</code>, <code>scripts/deploy.sh</code>, <code>scripts/backup-db.sh</code>.</li>
+          <li>Biên dịch toàn bộ Monorepo: <code>npm run build</code> (Backend + Frontend).</li>
+          <li>Chạy bộ kiểm thử hồi quy 28/28 test cases: <code>node scripts/qa-runner.js</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <ul>
+          <li>✅ <strong>Production Packaging:</strong> Cấu hình Docker Compose và Caddy hoàn tất.</li>
+          <li>✅ <strong>Monorepo Build:</strong> Build thành công 100% với 0 lỗi.</li>
+          <li>✅ <strong>Regression QA Suite:</strong> 28/28 tests PASS 100%.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </body>
 </html>

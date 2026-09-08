@@ -16,6 +16,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    const isProduction = process.env.NODE_ENV === 'production';
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
@@ -34,7 +35,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled exception: ${exception.message}`, exception.stack);
-      message = exception.message;
+      message = isProduction ? 'An unexpected error occurred. Please try again later.' : exception.message;
     }
 
     response.status(status).json({
@@ -46,3 +47,4 @@ export class AllExceptionsFilter implements ExceptionFilter {
     });
   }
 }
+

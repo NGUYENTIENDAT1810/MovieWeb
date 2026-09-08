@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsInt, Min, IsUrl } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateEpisodeDto {
@@ -30,7 +30,7 @@ export class CreateEpisodeDto {
 
   @ApiPropertyOptional({ description: 'Thumbnail URL' })
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
   thumbnailUrl?: string;
 
   @ApiPropertyOptional({ description: 'Duration in minutes', example: 45 })
@@ -41,11 +41,12 @@ export class CreateEpisodeDto {
 
   @ApiPropertyOptional({ description: 'HLS (.m3u8) or MP4 Video Stream URL' })
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
   videoUrl?: string;
 
   @ApiPropertyOptional({ description: 'WebVTT (.vtt) Subtitle URL' })
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
   subtitleUrl?: string;
 }
+

@@ -880,6 +880,70 @@
         </ul>
       </div>
     </div>
+
+    <div class="card" style="border-color: #f59e0b;">
+      <div class="card-title" style="color: #f59e0b;">
+        <span>🛡️ Phase 3 — Step 1: Security & Production Readiness Audit (Hardening & Optimization)</span>
+        <span class="badge" style="background-color: rgba(245, 158, 11, 0.2); color: #f59e0b; border-color: #f59e0b;">Hoàn thành</span>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">1. Task</div>
+        <p>Thực hiện kiểm toán toàn diện bảo mật và sẵn sàng triển khai môi trường Production (25 hạng mục): HTTP Security Headers (Helmet), Rate Limiting (Throttler), Graceful Shutdown, CORS cấu hình động, ẩn Swagger/Stack Trace trong Production, URL Protocol Sanitization cho Video/Subtitle, Database Foreign Key Indexes, SEO Robots.txt/Sitemap.ts và chuẩn hóa toàn bộ file <code>.env.example</code>.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">2. Nguyên nhân thay đổi</div>
+        <p>Thực hiện theo yêu cầu Phase 3 — Step 1: Chuẩn bị kiến trúc và gia cố hệ thống an toàn trước khi triển khai môi trường thực tế (Internet).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">3. File đã tạo / sửa</div>
+        <ul>
+          <li><code>docs/PHASE_3_SECURITY_AUDIT.md</code>: Báo cáo kiểm toán bảo mật chi tiết phân loại CRITICAL, HIGH, MEDIUM, LOW, INFO.</li>
+          <li><code>backend/src/main.ts</code>: Tích hợp <code>helmet()</code>, <code>app.enableShutdownHooks()</code>, dynamic CORS allowed origins, conditional Swagger.</li>
+          <li><code>backend/src/app.module.ts</code>: Cấu hình <code>ThrottlerModule</code> & <code>ThrottlerGuard</code> phòng chống tấn công Brute-Force/DoS.</li>
+          <li><code>backend/src/common/filters/http-exception.filter.ts</code>: Che giấu internal stack trace và thông tin hệ thống khi gặp lỗi 500 trong production.</li>
+          <li><code>backend/src/episodes/dto/create-episode.dto.ts</code> & <code>update-episode.dto.ts</code>: Bổ sung validator <code>@IsUrl({ protocols: ['http', 'https'] })</code>.</li>
+          <li><code>backend/prisma/schema.prisma</code>: Thêm database indexes cho các foreign keys (Episode.movieId, Favorite.userId, Favorite.movieId, WatchHistory.movieId).</li>
+          <li><code>frontend/app/robots.ts</code> & <code>frontend/app/sitemap.ts</code>: Cấu hình SEO và crawler rules động.</li>
+          <li><code>.env.example</code>, <code>backend/.env.example</code>, <code>frontend/.env.example</code>: Tài liệu hóa đầy đủ toàn bộ biến môi trường Production.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">4. Logic thay đổi</div>
+        <p>Gia cố tầng middleware và controller, bảo vệ backend chống lại tấn công brute-force và rò rỉ dữ liệu; tối ưu hóa chỉ mục database giúp tăng tốc truy vấn JOIN/CASCADE; bảo toàn 100% cơ chế xác thực JWT Bearer và logic nghiệp vụ.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">5. Phạm vi ảnh hưởng</div>
+        <p>Tầng bảo mật của Backend, cấu hình HTTP headers, schema Prisma và cấu hình SEO của Frontend.</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">6. API liên quan</div>
+        <p>Toàn bộ 28 endpoint (được bảo vệ qua ThrottlerGuard, Helmet headers, Sanitized Exception filter).</p>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">7. Cách kiểm thử</div>
+        <ul>
+          <li>Kiểm tra HTTP headers: <code>x-content-type-options: nosniff</code>, <code>x-frame-options: SAMEORIGIN</code>, <code>strict-transport-security</code>.</li>
+          <li>Biên dịch toàn bộ Monorepo: <code>npm run build</code> (Backend NestJS + Frontend Next.js).</li>
+          <li>Chạy bộ kiểm thử hồi quy 28/28 test cases: <code>node scripts/qa-runner.js</code>.</li>
+        </ul>
+      </div>
+
+      <div class="section-item">
+        <div class="section-label">8. Kết quả kiểm thử</div>
+        <ul>
+          <li>✅ <strong>API Regression Suite:</strong> 28/28 tests PASS 100%.</li>
+          <li>✅ <strong>Production Build:</strong> NestJS và Next.js 14 biên dịch thành công (0 warning/error).</li>
+          <li>✅ <strong>Security Headers & Rate Limiting:</strong> Hoạt động ổn định trên môi trường local.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </body>
 </html>
